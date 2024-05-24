@@ -1,22 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
 #include <errno.h>
 
 #define MAX_COMMAND_LENGTH 1024
 #define MAX_ARGS 100
-#define MAX_PATHS 100
-
-// Variável global para os caminhos de busca de executáveis
-char *paths[MAX_PATHS] = { "/bin", NULL };
 
 // Declaração das funções
 void handle_cd(char *args[]);
 void handle_path(char *args[]);
-void handle_exit();
 void execute_external_command(char *args[]);
 
 int main(int argc, char *argv[]) {
@@ -74,7 +69,7 @@ int main(int argc, char *argv[]) {
 
         // Comando interno ou externo
         if (strcmp(args[0], "exit") == 0) {
-            handle_exit();
+            break;
         } else if (strcmp(args[0], "cd") == 0) {
             handle_cd(args);
         } else if (strcmp(args[0], "path") == 0) {
@@ -104,16 +99,7 @@ void handle_cd(char *args[]) {
 
 // Implementação do comando interno 'path'
 void handle_path(char *args[]) {
-    int i;
-    for (i = 0; i < MAX_PATHS - 1 && args[i + 1] != NULL; i++) {
-        paths[i] = args[i + 1];
-    }
-    paths[i] = NULL;  // Terminador para indicar o final da lista
-}
-
-// Implementação do comando interno 'exit'
-void handle_exit() {
-    exit(0);
+    fprintf(stderr, "path: command not supported in this version\n");
 }
 
 // Execução de comandos externos
@@ -121,12 +107,9 @@ void execute_external_command(char *args[]) {
     pid_t pid = fork();
     if (pid == 0) {
         // Processo filho
-        char executable[MAX_COMMAND_LENGTH];
-        for (int i = 0; paths[i] != NULL; i++) {
-            snprintf(executable, sizeof(executable), "%s/%s", paths[i], args[0]);
-            execv(executable, args);
-        }
-        fprintf(stderr, "%s: command not found\n", args[0]);
+        execvp(args[0], args);
+        // Se execvp retornar, houve um erro
+        perror(args[0]);
         exit(EXIT_FAILURE);
     } else if (pid < 0) {
         perror("fork");
